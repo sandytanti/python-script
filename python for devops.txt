@@ -1,0 +1,585 @@
+
+===================================
+Using Python to Automate Docker
+================================
+
+------------------------------------------------------
+Install python3
+apt-get install python3 -y
+python3 --version 
+
+install docker
+curl -fsSL https://get.docker.com -o install-docker.sh
+sudo sh install-docker.sh
+docker --version
+
+Install python pip
+apt-get update -y
+apt-get install python3-pip -y
+pip3 --version
+
+Python program Interacts with docker 
+Require packager called ==> docker -py 
+pip install docker-py
+-----------------------------------------------------------------------------------------------------
+
+use case1:
+---------------
+vim sample1.py
+
+import subprocess
+subprocess.call("docker run -d --name appserver -p 8080:8080 tomcat",shell=True)
+
+-----------------------------------------------------------------------------------------
+execute script
+python3 sample1.py
+
+Check the container 
+docker container ls 
+-----------------------------------------------------------------------
+
+Use case2: 
+---------------
+Now we to delete all running and stopped container using python script
+
+vim delete_all_containers.py
+
+import subprocess
+subprocess.call("docker rm -f $(docker ps -aq)",shell=True)
+--------------------------------------------------------------------------
+execute script
+python3 delete_all_containers.py
+
+Check the container 
+docker container ls 
+
+-------------------------------------------------------------------------------
+
+Use case3:
+----------------
+Python program create a 10 nginx container for performing load balancing 
+
+Vim simple2.py 
+import subprocess
+
+i = 1
+
+while i <= 10:
+    subprocess.call("docker run --name n%d -d nginx"%i,shell=True)
+    i = i + 1
+-----------------------------------------------------------------------------------
+
+execute script
+python3 sample2.py
+
+Check the container 
+docker container ls 
+--------------------------------------------------------------------
+
+Use case4: 
+-----------
+alternative for docker compose 
+
+Create a python program which will link Jenkins container with 2 tomcat containers, to implement CICD 
+
+
+Vim simple3.py 
+
+import subprocess
+
+subprocess.call("docker run --name devserver -p 5050:8080 -d jenkins/jenkins",shell=True)
+
+subprocess.call("docker run --name qaserver -p 6060:8080 -d --link devserver:jenkins tomcat",shell=True)
+
+subprocess.call("docker run --name prodserver -p 7070:8080 -d --link devserver:jenkins tomcat",shell=True)
+--------------------------------------------------------------------------------------------------------------------------
+
+execute script
+python3 sample3.py
+
+Check the container 
+docker container ls 
+
+delete all containers 
+python3 delete_all_containers.py
+-------------------------------------------------------------------------------------------
+
+
+Use case5:
+------------
+
+
+vim sample4.py
+
+import subprocess
+
+image = input("Enter the docker image name: ")
+container = input("Enter name for container: ")
+ports = input("Enter port mapping: ")
+detach = input("Do you want to run in detached mode: y/n ")
+
+
+if detach == 'y':
+    subprocess.call("docker run -d --name %s -p %s %s"%(container,ports,image),shell=True)
+elif detach == 'n':
+    subprocess.call("docker run --name %s -p %s %s"%(container,ports,image),shell=True)
+else:
+    print("Invalid option")
+---------------------------------------------------------------------------------------------
+
+
+execute script
+python3 sample4.py
+
+Check the container 
+docker container ls 
+--------------------------------------------------------------------------------------- 
+
+I want take same program and I want to create tomcat container
+
+execute script
+ python3 sample4.py
+
+Enter the docker image name: tomcat
+Enter name for container: appserver
+Enter port mapping: 8888:8080
+Do you want to run in detached mode: y/n y
+6261f45116f3db182a8af43d2fdbec3f916c1911da9df86c2652d88e1599134f
+
+-----------------------------------------------------------------------------
+Check the container 
+docker container ls
+-----------------------------------------------------------------------------
+
+Note: create some container 
+
+docker run -d --name container1 httpd
+docker run -d --name container2 jenkins/jenkins
+docker run -d --name container3 nginx
+
+Check the container 
+docker container ls 
+------------------------------------------------------------------------------
+Use case 6:
+--------------------
+Python program for deleting all the containers whose name start name container 
+Delete only those containers whose name starting with a name word called as ‘container’
+
+Vim simaple5.py
+
+import subprocess
+subprocess.call('docker container ls | grep container | cut -d " " -f 1 > file1',shell=True)
+
+containers = open('file1','r').readlines()
+i = 0
+while i < len(containers):
+    cont_id = containers[i]
+    subprocess.call("docker rm -f %s"%cont_id,shell=True)
+    i = i +1
+------------------------------------------------------------------------------------ 
+
+execute script
+python3 sample5.py
+
+Check the container 
+docker container ls 
+-------------------------------------------------------------------------
+
+Use case 7:
+------------
+ write a python program to delete all the tomcat container 
+
+
+
+Check the container 
+docker container ls 
+
+We have to create a multiple container 
+Create a 3-tomcat container 
+
+docker run --name t1 -d tomcat
+docker run --name tom -d tomcat
+docker run --name cat -d tomcat
+docker run --name n1 -d nginx
+docker run --name h1 -d httpd
+
+
+Check the container 
+docker container ls 
+
+Now we have to grep catalina.sh
+docker container ls | grep catalina.sh
+--------------------------------------------
+vim simple6.py
+
+import subprocess
+subprocess.call('docker container ls | grep catalina.sh | cut -d " " -f 1 > file1',shell=True)
+
+containers = open('file1','r').readlines()
+i = 0
+while i < len(containers):
+    cont_id = containers[i]
+    subprocess.call("docker rm -f %s"%cont_id,shell=True)
+    i = i +1
+---------------------------------------------------------------------------------------
+
+execute script
+python3 sample6.py
+
+Check the container 
+docker container ls 
+--------------------------------------------------
+
+Use case 8: docker swarm 
+----------------------------
+Python program for interactively deploying service in docker swarm
+
+
+Install docker swarm
+docker swarm init --advertise-addr 172.31.9.150
+docker node ls
+---------------------------------------------------
+vim sample7.py
+
+import subprocess
+
+image = input("Enter image name :")
+service = input("Enter the service name :")
+replicas = input("Enter numbers of replicas :")
+ports = input("port mapping :")
+
+subprocess.call("docker service create --name %s --replicas %s -p %s %s"%(service,replicas,ports,image),shell=True)
+--------------------------------------------------------------------------------------------------------------------------
+
+
+execute script
+python3 sample7.py
+
+Check 
+We have 3 replica , all are running on the same machine 
+Because we don’t have any worker node 
+
+docker service ps webserver
+
+-------------------------------------------------------------------------------------
+So, I can use the same script, and I can deploy another service also 
+
+root@ip-172-31-9-150:~# python3 sample7.py
+
+Enter image name :httpd
+Enter the service name :appserver2
+Enter numbers of replicas :2
+port mapping :7778:80
+idg2ly5115w4t9ukadsuao9p0
+overall progress: 2 out of 2 tasks
+1/2: running   [==================================================>]
+2/2: running   [==================================================>]
+verify: Service converged
+root@ip-172-31-9-150:~#
+----------------------------------------------------------------------------------------
+
+======================================================================================= 
+
+====================================
+Automatic Jenkins using python
+====================================
+
+Create an AWS instance and install Jenkins on it
+
+Install python pip
+apt-get update -y
+apt-get install python3-pip -y
+pip3 –version
+
+install python Jenkins
+pip install python-jenkins
+
+-----------------------------------------------------------------
+
+Use case 9:
+-------------------
+Python program to connect to the Jenkins server and display all  the  available  job, 
+
+
+
+vim sample1.py
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+print(j.get_jobs())
+
+------------------------------------------------------------------------------------------ 
+
+execute script
+python3 sample1.py
+
+-----------------------------------------------------------------------------------------
+
+Use case 10:
+-----------------
+Python program to build or execute a Jenkins jobs 
+
+Imagin that there is a Jenkins job and I want to run that Jenkins job do my python program rather than running it manually 
+Go to Jenkins dashboard 
+Create a job
+Click on new item= enter the name  Dev1
+Click on free style project 
+Select source management
+Selet git
+Enter url (maven url)
+
+Apply and save 
+It will down load the code from  git repo 
+-------------------------------------------------------------------------------------------------------------
+Now we to create one more job
+Click on new item= enter the name  Dev2
+Click on free style project 
+Select source management
+Select git
+Enter url (functional testing)
+Apply and save 
+----------------------------------------------------------------
+
+
+Now we to create one more job
+Click on new item= enter the name  Dev3
+Click on free style project 
+Select source management
+Select git
+Enter url (functional testing)
+Apply and save
+-------------------------------------------------------------------
+
+Now I want to run the job from python program 
+Now execute the job 
+
+
+Vim sample2.py
+
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+j.build_job('Dev1')
+---------------------------------------------------------------------------------------------
+
+execute script
+python3 sample2.py
+---------------------------------------------------------------------------
+
+Go back to the dash board of Jenkins 
+Refresh the page
+---------------------------------------------------------------------------
+
+Use case 11:
+---------------------
+Python program to execute all the jobs :
+
+I want to run all job using python script
+
+We have a 3 jobs  so I want to run all jobs 
+
+Vim sample3.py
+
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+i = 1
+while i <= 3:
+    j.build_job('Dev%d'%i)
+    i = i +1
+----------------------------------------------------------------------------------
+
+execute script
+python3 sample3.py
+---------------------------------------------------------------------------
+
+Go back to the dash board of Jenkins 
+Refresh the page
+---------------------------------------------------------------------------
+
+Use case 12:
+=============
+Python program to create Jenkins jobs
+
+Vim sample4.py
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+j.create_job('Myjob1',jenkins.EMPTY_CONFIG_XML)
+--------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------
+
+execute script
+python3 sample4.py
+---------------------------------------------------------------------------
+
+Go back to the dash board of Jenkins 
+Refresh the page
+---------------------------------------------------------------------------
+
+Use case 13:
+=================
+Python program to take a backup of a Jenkins jobs
+
+Vim sample5.py
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+j.copy_job('Dev1','NewDev')
+-----------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------
+
+execute script
+python3 sample5.py
+---------------------------------------------------------------------------
+
+Go back to the dash board of Jenkins 
+Refresh the page
+---------------------------------------------------------------------------
+
+Use case 14:
+=======================
+Python program to take a backup of a multiple Jenkins jobs
+
+I want to take back up of  Dev1,Dev2, and Dev3 jobs to copy in NDev1,Ndev2,NDev3
+
+Vim sample6.py
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+i = 1
+while i <= 3:
+    j.copy_job('Dev%d'%i,'NewDevjob%d'%i)
+    i =i +1
+------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------
+
+execute script
+python3 sample7.py
+---------------------------------------------------------------------------
+
+Go back to the dash board of Jenkins 
+Refresh the page
+---------------------------------------------------------------------------
+
+Use case 15:
+-------------
+Python program to Delete a Jenkins jobs
+
+Vim sample7.py
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+j.delete_job('Myjob1')
+
+----------------------------------------------------------------------------------
+
+execute script
+python3 sample7.py
+---------------------------------------------------------------------------
+
+Go back to the dash board of Jenkins 
+Refresh the page
+---------------------------------------------------------------------------
+
+
+Use case 16:
+----------------------
+Python program to Delete a multiple Jenkins jobs
+
+We have to delete 3 jobs , Dev1,Dev2, Dev3
+
+Vim sample8.py
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+i = 1
+while i <=3:
+    j.delete_job('Dev%d'%i)
+    i = i + 1
+-------------------------------------------------------------------------------------------
+execute script
+python3 sample8.py
+---------------------------------------------------------------------------
+
+Go back to the dash board of Jenkins 
+Refresh the page
+---------------------------------------------------------------------------
+
+Use case 17:
+-------------------
+Get version of Jenkins
+Vim sample9.py
+
+
+import jenkins
+
+#connect to jenkins server
+j = jenkins.Jenkins('http://localhost:8080', username='admin', password='admin')
+
+user = j.get_whoami()
+version = j.get_version()
+print('Hello %s from Jenkins %s' % (user['fullName'], version))
+------------------------------------------------------------------------------
+execute script
+
+python3 sample9.py
+Hello Sandeep Kumar from Jenkins 2.401.2
+--------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
